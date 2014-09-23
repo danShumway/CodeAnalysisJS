@@ -36,15 +36,26 @@ function foo(items) {
 
     var annalyze = false;
 
-
     function _init() {
+
+
+        var scope = {};
+
+        //-------------------SETUP AND VARIABLES-------------------------------------------------
 
         //Included code for setting up the editor.
         //Ace editor is cool.
         var editor = ace.edit("editor");
         editor.setTheme("ace/theme/monokai");
         editor.getSession().setMode("ace/mode/javascript");
-        window.sessionVar = editor.getSession();
+
+        //
+        scope.session = editor.getSession(); //Maybe unnecessary?
+        scope.pause = false;
+        
+        var whiteList = [];
+        var blackList = [];
+        var structure = [];
 
 
 
@@ -85,15 +96,10 @@ function foo(items) {
             console.log('compiled feedback');
         }
 
-
+        return scope;
     }
 
-    _init();
-
-
-
-
-
+    window.editor = _init();
 
 
 
