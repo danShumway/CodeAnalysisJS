@@ -1,0 +1,119 @@
+<!--Just sample code from http://ace.c9.io/#nav=embedding-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>ACE in Action</title>
+<style type="text/css" media="screen">
+    #editor { 
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+</style>
+</head>
+<body>
+
+<div id="editor">
+
+function foo(items) {
+    var b;
+    for(var i = 0; i &lt; 10; i++) {
+        b++;
+    }
+    var x = "All this is syntax highlighted";
+    return x;
+}
+
+
+</div>
+    
+<script src="scripts/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="scripts/acorn/acorn.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+
+    var annalyze = false;
+
+
+    function _init() {
+
+        //Included code for setting up the editor.
+        //Ace editor is cool.
+        var editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.getSession().setMode("ace/mode/javascript");
+        window.sessionVar = editor.getSession();
+
+
+
+        var changeTimer = 800;
+        //Set up hooks for evaluation.
+        editor.getSession().getDocument().on('change', function(e) {
+            //Otherwise, record that there's new information, and we need to evaluate it soon.
+            //Basically, we'll wait for the user to stop typing.
+            changeTimer = 800; //If you type something, and don't type something else for 800 miliseconds, then we parse the code.  But we really don't want to parse while you're typing.
+        });
+
+
+
+        var time = new Date().getTime();
+        //Handles periodically checking for changes and sending out a command to parse the program.
+        function getChanges(){
+            //How long has elapsed?
+            var dx = new Date().getTime() - time;
+            time = time + dx;
+
+            if(changeTimer > 0) { changeTimer -= dx; }
+            //I allow a refresh every 15 seconds even if you are just sitting there 
+            //who knows, maybe we missed something once.
+            if(changeTimer <= 0) { parseInformation(); changeTimer = 15000; }
+            window.requestAnimationFrame(getChanges);
+        }; getChanges();
+
+
+
+        //Returns {}
+        function parseInformation() {
+            //First check to see if there are any errors or messages.
+            var annotations = editor.getSession().getAnnotations();
+            //Don't compile if there are errors, there wouldn't be any point.
+            for(var i = 0; i < annotations.length; i++){
+                if(annotations[i].type == "error") { return; }
+            }
+            console.log('compiled feedback');
+        }
+
+
+    }
+
+    _init();
+
+
+
+
+
+
+
+
+    /*var script = acorn.parse(editor.getValue());
+    console.log(script);
+    printProgramTree(script.body);
+
+    function printProgramTree(body){
+        //Set timeout.
+        if(body && !body.length){
+            body = [body];
+        }
+        for(var i = 0; i < body.length; i++) {
+            var line = body[i];
+            console.log("found line: " + line.type);
+            if(line.body){
+                printProgramTree(line.body);
+            }
+        }
+    }*/
+</script>
+</body>
+</html>
