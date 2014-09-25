@@ -23,7 +23,7 @@ function foo(items) {
         b++;
     }
     var x = "All this is syntax highlighted";
-    return x;
+    //return x;
 }
 
 
@@ -53,7 +53,11 @@ function foo(items) {
         scope.session = editor.getSession(); //Maybe unnecessary?
         scope.pause = false;
         
-        var whitelist = [];
+        var whitelist = [{
+                type:"BlockStatement",
+                whitelist: [{type:"ForStatement"}, {type:"ReturnStatement"}],
+                blacklist: [{type:"IfStatement"}]
+            }];
         var blacklist = [];
         var structure = [];
         var whitelist_found = [];
@@ -97,44 +101,32 @@ function foo(items) {
             }
             
             var tree = acorn.parse(scope.session.getValue());
-            whitelist = [{
-                type:"BlockStatement",
-                whitelist: [{type:"ForStatement"}, {type:"ReturnStatement"}],
-                blacklist: []//[{type:"re"}]
-            }]//, {type:"BlockStatement"}];
 
-            successIDs = [];
-            //console.log(tree);
+            whitelist_found = [];
+            blacklist_found = []; //Reset what we've found.
             codeReview(whitelist, tree, whitelist_found, blacklist_found);
-            //codeReview()
         };
 
 
         //Loops through whitelist and blacklist and populates two given arrays with the found patterns.
         //ID is an optional parameter - if you're calling this yourself, don't set it.
         function codeReview(list, tree, whitelistResults, blacklistResults, id) {
-
             for(var required in list) {
                 (function(required, id) {
-                    //console.log(list[required]); console.log(tree);
                     bfs(tree, list[required], function(found){
                         if(found.length === 0) {
                             //We didn't find it, but we still might.
+                            //Make sure it's not in the whitelist.
+
                         } else {
-                            if(true/*(!list[required].whitelist || list[required].whitelist.length === 0) &&
-                                (!list[required].blacklist || list[required].blacklist.length === 0)*/) {
-                                //If we haven't allready logged it, log it.
-                                if(whitelistResults.indexOf(id || required) === -1) { 
-                                    whitelistResults.push(id || required);
-                                    console.log("found");
-                                }
+                            if(whitelistResults.indexOf(id || required) === -1) { 
+                                whitelistResults.push(id || required);
                             }
 
+                            list[required].whitelist_found = [];
+                            list[required].blacklist_found = [];
                             for(var node in found) {
-                                //Recurse down.
-                                //If the parent doesn't have resultsLists, add them in.
-                                if(!list[required].whitelist_found) { list[required].whitelist_found = []; }
-                                if(!list[required].blacklist_found) { list[required].blacklist_found = []; }
+                                //Look down at the children.
                                 codeReview(list[required].whitelist || [], found[node], list[required].whitelist_found, list[required].blacklist_found);//, id || required);
                                 codeReview(list[required].blacklist || [], found[node], list[required].blacklist_found, list[required].blacklist_found);
                             }
@@ -169,14 +161,14 @@ function foo(items) {
                 if(toCheck.length > 0) { 
                     window.requestAnimationFrame(runCheck); 
                 } else { callback(found); }
-            })();
+            })();    
         };
 
         //Checks to see if an object fulfills all the requirements of a test object.
         //Does not count body as a requirement.
         function objEquals(obj, testObj) {
             for(var p in testObj){
-                if(p !== "whitelist" && p !== "blacklist") {
+                if(p !== "whitelist" && p !== "blacklist" && p !== "whitelist_found" && p !== "blacklist_found") {
                     if(obj[p] !== testObj[p]) {
                         return false;
                     }
@@ -187,7 +179,7 @@ function foo(items) {
 
         //----------------GETTING RESULTS OF CODE REVIEW----------------------------
 
-        //Returns a boolean
+        //Returns a {found:boolean, messages:[array of strings]
         function parseReview(whitelist, blacklist, whitelist_found, blacklist_found, error) {
             var toReturn = false; var i = 0;
 
@@ -212,7 +204,7 @@ function foo(items) {
                     //Any sure it's really found.
                     whiteRequirement = parseReview(whitelist[i].whitelist, whitelist[i].blacklist, whitelist[i].whitelist_found, whitelist[i].blacklist_found);
                 } else {
-                    console.log("didn't find: "); console.log(whitelist[i]);
+                    //console.log("didn't find: "); console.log(whitelist[i]);
                     whiteRequirement = false;
                 }
             }
@@ -237,25 +229,6 @@ function foo(items) {
 
     window.editor = _init();
 
-
-
-    /*var script = acorn.parse(editor.getValue());
-    console.log(script);
-    printProgramTree(script.body);
-
-    function printProgramTree(body){
-        //Set timeout.
-        if(body && !body.length){
-            body = [body];
-        }
-        for(var i = 0; i < body.length; i++) {
-            var line = body[i];
-            console.log("found line: " + line.type);
-            if(line.body){
-                printProgramTree(line.body);
-            }
-        }
-    }*/
 </script>
 </body>
 </html>
