@@ -102,24 +102,31 @@ function foo(items) {
             }];
 
             successIDs = [];
-            codeReview(whiteList, blackList, tree, null);
+            codeReview(whiteList, blackList, tree, successIDs);
             //bfs(tree, toCheck, function(found) { console.log(found); });
             //console.log(tree);
         };
 
-        function codeReview(whiteList, blackList, tree, id) {
+
+        //Loops through whitelist and blacklist and populates two given arrays with the found patterns.
+        //ID is an optional parameter - if you're calling this yourself, don't set it.
+        function codeReview(whiteList, blackList, tree, whiteListResults, blackListResults, id) {
 
             for(var required in whiteList) {
                 bfs(tree, whiteList[required], function(found){
                     if(found.length === 0) {
-                        //Stop
+                        //We didn't find it, but we still might.
                     } else {
                         if(!whiteList[required].body || whiteList[required].body.length === 0) {
-                            successIDs.push(id || required);
+                            //If we haven't allready logged it, log it.
+                            if(whiteListResults.indexOf(id || required) === -1) { 
+                                whiteListResults.push(id || required); 
+                            }
                             console.log(successIDs);
                         } else {
                             for(var node in found) {
-                                codeReview(whiteList[required], {}, found[node], id || required);
+                                //Recurse down.
+                                codeReview(whiteList[required], {}, found[node], whiteListResults, blackListResults, id || required);
                             }
                         }
                     }
