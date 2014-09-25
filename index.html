@@ -3,30 +3,72 @@
 <html lang="en">
 <head>
 <title>ACE in Action</title>
+
 <style type="text/css" media="screen">
+
+    body, html {
+        width:100%;
+        height:100%;
+        margin:0px;
+        padding:0px;
+    }
+
+    #feedback {
+        color:rgb(200, 200, 200);
+        font-family:roboto, "Open Sans", "Helvetica Neue", sans-serif;
+        font-size:130%;
+        background-color:rgb(50, 50, 50);
+        width:100%;
+        height:25%;
+        padding:20px;
+        padding-left:50px;
+    }
+
+    .container {
+        position:relative;
+        display:block;
+        width:100%;
+        height:75%;
+        background-color:black;
+        overflow:hidden;
+    }
+
     #editor { 
-        position: absolute;
+        /*position: absolute;
         top: 0;
         right: 0;
         bottom: 0;
-        left: 0;
+        left: 0;*/
+        position:relative;
+        width:100%;
+        height:100%;
     }
 </style>
 </head>
 <body>
 
-<div id="editor">
+<div class="container">
+    <div id="editor">
 
-function foo(items) {
-    var b;
-    for(var i = 0; i &lt; 10; i++) {
-        b++;
+    function foo(items) {
+        var b;
+        for(var i = 0; i &lt; 10; i++) {
+            b++;
+        }
+        //if(true) { 
+            //for(var x=0; x &lt; 10; x++) {
+            //    
+            //}
+            
+        //}
+
+        return x;
     }
-    var x = "All this is syntax highlighted";
-    //return x;
-}
+    </div>
+</div>
 
-
+<div id="feedback">
+    Hello
 </div>
     
 <script src="scripts/ace/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -55,8 +97,12 @@ function foo(items) {
         
         var whitelist = [{
                 type:"BlockStatement",
-                whitelist: [{type:"ForStatement"}, {type:"ReturnStatement"}],
-                blacklist: [{type:"IfStatement"}]
+                whitelist: [{type:"ReturnStatement", message:"You must return something!"}],
+                blacklist: [{
+                    message: "Don't include a for statement with an if statement!",
+                    type:"IfStatement", 
+                    whitelist:[{type:"ForStatement"}]
+                }]
             }];
         var blacklist = [];
         var structure = [];
@@ -105,34 +151,35 @@ function foo(items) {
             whitelist_found = [];
             blacklist_found = []; //Reset what we've found.
             codeReview(whitelist, tree, whitelist_found, blacklist_found);
+            codeReview(blacklist, tree, blacklist_found, blacklist_found);
         };
 
 
-        //Loops through whitelist and blacklist and populates two given arrays with the found patterns.
-        //ID is an optional parameter - if you're calling this yourself, don't set it.
-        function codeReview(list, tree, whitelistResults, blacklistResults, id) {
+        //Loops through whitelist and blacklist and populates a given array with the found patterns.
+        function codeReview(list, tree, listResults) {
             for(var required in list) {
-                (function(required, id) {
+                (function(required) {
                     bfs(tree, list[required], function(found){
                         if(found.length === 0) {
                             //We didn't find it, but we still might.
-                            //Make sure it's not in the whitelist.
 
                         } else {
-                            if(whitelistResults.indexOf(id || required) === -1) { 
-                                whitelistResults.push(id || required);
+                            if(listResults.indexOf(required) === -1) { 
+                                listResults.push(required);
                             }
 
                             list[required].whitelist_found = [];
-                            list[required].blacklist_found = [];
+                            list[required].blacklist_found = []; //Reset whitelist and blacklist.
                             for(var node in found) {
                                 //Look down at the children.
-                                codeReview(list[required].whitelist || [], found[node], list[required].whitelist_found, list[required].blacklist_found);//, id || required);
-                                codeReview(list[required].blacklist || [], found[node], list[required].blacklist_found, list[required].blacklist_found);
+                                codeReview(list[required].whitelist || [], found[node], list[required].whitelist_found);
+                                codeReview(list[required].blacklist || [], found[node], list[required].blacklist_found);
                             }
                         }
                     });
-                })(required, id);
+                })(required);
+
+
             }
         }
 
@@ -141,18 +188,22 @@ function foo(items) {
         function bfs(code_tree, object, callback) {
             var toCheck = []; toCheck.push(code_tree);
             var found = [];
+            var directions = ["body", "consequent", "alternate" ];
             //while(toCheck.length > 0){
 
             //Leveraging requestAnimationFrame should prevent slowdown on long searches.
             (function runCheck() {
                 if (objEquals(toCheck[0], object)) { found.push(toCheck[0]); } //Did we find a match.
-                //Check subtrees.
-                if(toCheck[0].body instanceof Array) {
-                    for(var obj in toCheck[0].body) {
-                        toCheck.push(toCheck[0].body[obj]);
+                //Append subtrees.
+                for (var x in directions) {
+                    var subtree = directions[x];
+                    if(toCheck[0][subtree] instanceof Array) {
+                        for(var obj in toCheck[0][subtree]) {
+                            toCheck.push(toCheck[0][subtree][obj]);
+                        }
+                    } else if (toCheck[0][subtree]){
+                        toCheck.push(toCheck[0][subtree]);
                     }
-                } else if (toCheck[0].body !== undefined){
-                    toCheck.push(toCheck[0].body);
                 }
                 //And remove.
                 toCheck.shift(); //O(n) - not the most efficient in the world, but it's probably fine.
@@ -168,7 +219,7 @@ function foo(items) {
         //Does not count body as a requirement.
         function objEquals(obj, testObj) {
             for(var p in testObj){
-                if(p !== "whitelist" && p !== "blacklist" && p !== "whitelist_found" && p !== "blacklist_found") {
+                if(p !== "whitelist" && p !== "blacklist" && p !== "whitelist_found" && p !== "blacklist_found" && p !== "message") {
                     if(obj[p] !== testObj[p]) {
                         return false;
                     }
@@ -180,36 +231,44 @@ function foo(items) {
         //----------------GETTING RESULTS OF CODE REVIEW----------------------------
 
         //Returns a {found:boolean, messages:[array of strings]
-        function parseReview(whitelist, blacklist, whitelist_found, blacklist_found, error) {
+        function parseReview(whitelist, blacklist, whitelist_found, blacklist_found, errorMessage) {
             var toReturn = false; var i = 0;
+            var children; var _messages = [];
 
             if(!whitelist){ whitelist = []; } if(!blacklist){ blacklist = []; }
             if(!whitelist_found){ whitelist_found = []; } if(!blacklist_found){ blacklist_found = []; }
 
-            whiteRequirement = true;
-            blackRequirement = true;
+            var whiteRequirement = true;
+            var blackRequirement = true;
 
             //Check blacklist.
             for(i = 0; i < blacklist.length; i++) {
                 //Any blacklist items found?
-                if(blacklist_found.indexOf(i) !== -1) {
+                if(blacklist_found.indexOf("" + i) !== -1) {
                     //Make sure they're really found.
-                    blackRequiremnt = !(parseReview(blacklist[i].whitelist, blacklist[i].blacklist, blacklist[i].whitelist_found, blacklist[i].blacklist_found));
-                }
+                    children = parseReview(blacklist[i].whitelist, blacklist[i].blacklist, blacklist[i].whitelist_found, blacklist[i].blacklist_found, blacklist[i].message);
+                    if(children.pass){
+                        if(blacklist[i].message) { _messages.push(blacklist[i].message); }
+                        blackRequirement = false;
+                    }
+                } 
             }
 
             //Check whitelist.
             for(i = 0; i < whitelist.length; i++){
                 if(whitelist_found.indexOf("" + i) !== -1) {
-                    //Any sure it's really found.
-                    whiteRequirement = parseReview(whitelist[i].whitelist, whitelist[i].blacklist, whitelist[i].whitelist_found, whitelist[i].blacklist_found);
+                    //And make sure it's really found.
+                    children = parseReview(whitelist[i].whitelist, whitelist[i].blacklist, whitelist[i].whitelist_found, whitelist[i].blacklist_found, whitelist[i].message);
+                    whiteRequirement = children.pass;
+                    if(children.messages) { _messages = _messages.concat(children.messages); }
                 } else {
-                    //console.log("didn't find: "); console.log(whitelist[i]);
+                    if(whitelist[i].message) {  _messages.push(whitelist[i].message); }
                     whiteRequirement = false;
                 }
+
             }
 
-            return (whiteRequirement && blackRequirement);
+            return {pass:(whiteRequirement && blackRequirement), messages:_messages};
         }
 
         var x = 30;
@@ -217,7 +276,16 @@ function foo(items) {
             x--;
             if(x < 0) {
                 x = 30;
-                console.log(parseReview(whitelist, blacklist, whitelist_found, blacklist_found, undefined));
+                var status = parseReview(whitelist, blacklist, whitelist_found, blacklist_found, undefined);
+                var messageReturn = "";
+                if(status.pass){
+                    messageReturn = "Everything looks OK!";
+                } else {
+                    for (var i = 0; i < status.messages.length; i++)
+                    messageReturn += "Error: " + status.messages[i] + "<br>";
+                }
+
+                document.getElementById("feedback").innerHTML = messageReturn;
             }
             window.requestAnimationFrame(gotRequirements);
         } gotRequirements();
