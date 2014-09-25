@@ -96,30 +96,35 @@ function foo(items) {
             
             var tree = acorn.parse(scope.session.getValue());
             var toCheck = {type:"ForStatement"};
-            console.log(bfs(tree, toCheck));
+            bfs(tree, toCheck, function(found) { console.log(found); });
             //console.log(tree);
         };
 
         //
-        function bfs(code_tree, object) {
+        function bfs(code_tree, object, callback) {
             var toCheck = []; toCheck.push(code_tree);
+            var found = false;
+            //while(toCheck.length > 0){
 
-            //Check to see if the object
-            while(toCheck.length > 0){
-                if (objEquals(toCheck[0], object)) { return true; } //Did we find a match.
+            //Leveraging requestAnimationFrame should prevent slowdown on long searches.
+            (function runCheck() {
+                if (objEquals(toCheck[0], object)) { found = true; } //Did we find a match.
                 //Check subtrees.
                 if(toCheck[0].body instanceof Array) {
-                    for(var obj in toCheck[0].body){
+                    for(var obj in toCheck[0].body) {
                         toCheck.push(toCheck[0].body[obj]);
                     }
                 } else {
                     toCheck.push(toCheck[0].body);
                 }
                 //And remove.
-                toCheck.shift(); //O(n) - not the most efficient in the world.
-            }
+                toCheck.shift(); //O(n) - not the most efficient in the world, but it's probably fine.
 
-            return false;
+                //Re-run.
+                if(toCheck.length > 0 && found === false) { 
+                    window.requestAnimationFrame(runCheck); 
+                } else { callback(found); }
+            })();
         };
 
         function bfsSplit(toCheck, object) {
