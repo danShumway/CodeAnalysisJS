@@ -105,6 +105,7 @@ function foo(items) {
             successIDs = [];
             console.log(tree);
             codeReview(whitelist, tree, successIDs);
+            //codeReview()
         };
 
 
@@ -119,18 +120,20 @@ function foo(items) {
                         if(found.length === 0) {
                             //We didn't find it, but we still might.
                         } else {
-                            if(!list[required].whitelist || list[required].whitelist.length === 0) {
+                            if((!list[required].whitelist || list[required].whitelist.length === 0) &&
+                                (!list[required].blacklist || list[required.blacklist.length === 0)) {
                                 //If we haven't allready logged it, log it.
                                 if(listResults.indexOf(id || required) === -1) { 
                                     listResults.push(id || required);
                                     console.log(found);
-                                    console.log("found");;
+                                    console.log("found");
                                 }
                             } else {
                                 for(var node in found) {
                                     //Recurse down.
-                                    codeReview(list[required].whitelist, found[node], listResults, id || required);
-
+                                    list.found = true;
+                                    codeReview(list[required].whitelist || [], found[node], listResults, id || required);
+                                    //codeReview(list[required].blacklist || [], found[node], )
                                 }
                             }
                         }
