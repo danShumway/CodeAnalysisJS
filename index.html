@@ -56,7 +56,8 @@ function foo(items) {
         var whitelist = [];
         var blacklist = [];
         var structure = [];
-        var successIDs = [];
+        var whitelist_found = [];
+        var blacklist_found = [];
 
 
         //-----------------GET USER INPUT---------------------------------------------------------
@@ -103,37 +104,39 @@ function foo(items) {
             }]//, {type:"BlockStatement"}];
 
             successIDs = [];
-            console.log(tree);
-            codeReview(whitelist, tree, successIDs);
+            //console.log(tree);
+            codeReview(whitelist, tree, whitelist_found, blacklist_found);
             //codeReview()
         };
 
 
         //Loops through whitelist and blacklist and populates two given arrays with the found patterns.
         //ID is an optional parameter - if you're calling this yourself, don't set it.
-        function codeReview(list, tree, listResults, id) {
+        function codeReview(list, tree, whitelistResults, blacklistResults, id) {
 
             for(var required in list) {
                 (function(required, id) {
-                    console.log(list[required]); console.log(tree);
+                    //console.log(list[required]); console.log(tree);
                     bfs(tree, list[required], function(found){
                         if(found.length === 0) {
                             //We didn't find it, but we still might.
                         } else {
-                            if((!list[required].whitelist || list[required].whitelist.length === 0) &&
-                                (!list[required].blacklist || list[required.blacklist.length === 0)) {
+                            if(true/*(!list[required].whitelist || list[required].whitelist.length === 0) &&
+                                (!list[required].blacklist || list[required].blacklist.length === 0)*/) {
                                 //If we haven't allready logged it, log it.
-                                if(listResults.indexOf(id || required) === -1) { 
-                                    listResults.push(id || required);
+                                if(whitelistResults.indexOf(id || required) === -1) { 
+                                    whitelistResults.push(id || required);
                                     console.log(found);
                                     console.log("found");
                                 }
                             } else {
                                 for(var node in found) {
                                     //Recurse down.
-                                    list.found = true;
-                                    codeReview(list[required].whitelist || [], found[node], listResults, id || required);
-                                    //codeReview(list[required].blacklist || [], found[node], )
+                                    //If the parent doesn't have resultsLists, add them in.
+                                    if(!list[required].whitelist_found) { list[required].whitelist_found = []; }
+                                    if(!list[required].blacklist_found) { list[required].blacklist_found = []; }
+                                    codeReview(list[required].whitelist || [], found[node], list[required].whitelist_found, list[required].blacklist_found);//, id || required);
+                                    codeReview(list[required].blacklist || [], found[node], list[required].blacklist_found, list[required].blacklist_found);
                                 }
                             }
                         }
@@ -182,6 +185,54 @@ function foo(items) {
             }
             return true;
         };
+
+        //----------------GETTING RESULTS OF CODE REVIEW----------------------------
+
+        //Returns a boolean
+        function parseReview(whitelist, blacklist, whitelist_found, blacklist_found, error) {
+            var toReturn = false; var i = 0;
+
+            if(!whitelist){ whitelist = []; } if(!blacklist){ blacklist = []; }
+            if(!whitelist_found){ whitelist_found = []; } if(!blacklist_found){ blacklist_found = []; }
+
+            whiteRequirement = true;
+            blackRequirement = true;
+
+            //Check blacklist.
+            for(i = 0; i < blacklist.length; i++) {
+                //Any blacklist items found?
+                if(blacklist_found.indexOf(i) !== -1) {
+                    //Make sure they're really found.
+                    blackRequiremnt = !(parseReview(blacklist[i].whitelist, blacklist[i].blacklist, blacklist[i].whitelist_found, blacklist[i].blacklist_found));
+                }
+            }
+
+            //Check whitelist.
+            for(i = 0; i < whitelist.length; i++){
+                if(whitelist_found.indexOf(i) === 1) {
+                    //Any sure it's really found.
+                    whiteRequirement = parseReview(whitelist[i].whitelist, whitelist[i].blacklist, whitelist[i].whitelist_found, whitelist[i].blacklist_found);
+                } else {
+                    whiteRequirement = false;
+                }
+            }
+
+            console.log(whiteRequirement + ", " + blackRequirement);
+            return (whiteRequirement && blackRequirement);
+        }
+
+        var x = 500;
+        function gotRequirements(){
+            x--;
+            if(x < 0) {
+                x = 500;
+                console.log('checking');
+                console.log(parseReview(whitelist, blacklist, whitelist_found, blacklist_found, undefined));
+            }
+            window.requestAnimationFrame(gotRequirements);
+        } gotRequirements();
+
+        //---------------------RETURN--------------------------------------------------
 
         return scope;
     }
