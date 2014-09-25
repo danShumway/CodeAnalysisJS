@@ -53,8 +53,8 @@ function foo(items) {
         scope.session = editor.getSession(); //Maybe unnecessary?
         scope.pause = false;
         
-        var whiteList = [];
-        var blackList = [];
+        var whitelist = [];
+        var blacklist = [];
         var structure = [];
         var successIDs = [];
 
@@ -96,13 +96,13 @@ function foo(items) {
             }
             
             var tree = acorn.parse(scope.session.getValue());
-            whiteList = [{
+            whitelist = [{
                 type:"BlockStatement",
-                body: {type:"ForStatement"},
-            }];
+                whitelist: { type:"ForStatement" }//[{type:"ForStatement"}, {type:"ForStatement"}],
+            }, {type:"BlockStatement"}];
 
             successIDs = [];
-            codeReview(whiteList, blackList, tree, successIDs);
+            codeReview(whitelist, tree, successIDs);
             //bfs(tree, toCheck, function(found) { console.log(found); });
             //console.log(tree);
         };
@@ -110,27 +110,29 @@ function foo(items) {
 
         //Loops through whitelist and blacklist and populates two given arrays with the found patterns.
         //ID is an optional parameter - if you're calling this yourself, don't set it.
-        function codeReview(whiteList, blackList, tree, whiteListResults, blackListResults, id) {
+        function codeReview(list, tree, listResults, id) {
 
-            for(var required in whiteList) {
-                bfs(tree, whiteList[required], function(found){
-                    if(found.length === 0) {
-                        //We didn't find it, but we still might.
-                    } else {
-                        if(!whiteList[required].body || whiteList[required].body.length === 0) {
-                            //If we haven't allready logged it, log it.
-                            if(whiteListResults.indexOf(id || required) === -1) { 
-                                whiteListResults.push(id || required); 
-                            }
-                            console.log(successIDs);
+            for(var required in list) {
+                (function(required, id) {
+                    bfs(tree, list[required], function(found){
+                        if(found.length === 0) {
+                            //We didn't find it, but we still might.
                         } else {
-                            for(var node in found) {
-                                //Recurse down.
-                                codeReview(whiteList[required], {}, found[node], whiteListResults, blackListResults, id || required);
+                            if(!list[required].whitelist || list[required].whitelist.length === 0) {
+                                //If we haven't allready logged it, log it.
+                                if(listResults.indexOf(id || required) === -1) { 
+                                    listResults.push(id || required); 
+                                }
+                                console.log(successIDs);
+                            } else {
+                                for(var node in found) {
+                                    //Recurse down.
+                                    codeReview(list[required], found[node], listResults, id || required);
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                })(required, id);
             }
         }
 
@@ -166,7 +168,7 @@ function foo(items) {
         //Does not count body as a requirement.
         function objEquals(obj, testObj) {
             for(var p in testObj){
-                if(p !== "body") {
+                if(p !== "whitelist" && p !== "blacklist") {
                     if(obj[p] !== testObj[p]) {
                         return false;
                     }
