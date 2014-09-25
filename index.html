@@ -126,18 +126,17 @@ function foo(items) {
                                 //If we haven't allready logged it, log it.
                                 if(whitelistResults.indexOf(id || required) === -1) { 
                                     whitelistResults.push(id || required);
-                                    console.log(found);
                                     console.log("found");
                                 }
-                            } else {
-                                for(var node in found) {
-                                    //Recurse down.
-                                    //If the parent doesn't have resultsLists, add them in.
-                                    if(!list[required].whitelist_found) { list[required].whitelist_found = []; }
-                                    if(!list[required].blacklist_found) { list[required].blacklist_found = []; }
-                                    codeReview(list[required].whitelist || [], found[node], list[required].whitelist_found, list[required].blacklist_found);//, id || required);
-                                    codeReview(list[required].blacklist || [], found[node], list[required].blacklist_found, list[required].blacklist_found);
-                                }
+                            }
+
+                            for(var node in found) {
+                                //Recurse down.
+                                //If the parent doesn't have resultsLists, add them in.
+                                if(!list[required].whitelist_found) { list[required].whitelist_found = []; }
+                                if(!list[required].blacklist_found) { list[required].blacklist_found = []; }
+                                codeReview(list[required].whitelist || [], found[node], list[required].whitelist_found, list[required].blacklist_found);//, id || required);
+                                codeReview(list[required].blacklist || [], found[node], list[required].blacklist_found, list[required].blacklist_found);
                             }
                         }
                     });
@@ -209,24 +208,23 @@ function foo(items) {
 
             //Check whitelist.
             for(i = 0; i < whitelist.length; i++){
-                if(whitelist_found.indexOf(i) === 1) {
+                if(whitelist_found.indexOf("" + i) !== -1) {
                     //Any sure it's really found.
                     whiteRequirement = parseReview(whitelist[i].whitelist, whitelist[i].blacklist, whitelist[i].whitelist_found, whitelist[i].blacklist_found);
                 } else {
+                    console.log("didn't find: "); console.log(whitelist[i]);
                     whiteRequirement = false;
                 }
             }
 
-            console.log(whiteRequirement + ", " + blackRequirement);
             return (whiteRequirement && blackRequirement);
         }
 
-        var x = 500;
+        var x = 30;
         function gotRequirements(){
             x--;
             if(x < 0) {
-                x = 500;
-                console.log('checking');
+                x = 30;
                 console.log(parseReview(whitelist, blacklist, whitelist_found, blacklist_found, undefined));
             }
             window.requestAnimationFrame(gotRequirements);
