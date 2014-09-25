@@ -81,7 +81,7 @@ function foo(items) {
             //who knows, maybe we missed something once.
             if(changeTimer <= 0) { parseInformation(); changeTimer = 15000; }
             window.requestAnimationFrame(getChanges);
-        }; getChanges();
+        }; getChanges(); //Run once when you open the program.
 
 
 
@@ -93,8 +93,49 @@ function foo(items) {
             for(var i = 0; i < annotations.length; i++){
                 if(annotations[i].type == "error") { return; }
             }
-            console.log('compiled feedback');
+            
+            var tree = acorn.parse(scope.session.getValue());
+            var toCheck = {type:"ForStatement"};
+            console.log(bfs(tree, toCheck));
+            //console.log(tree);
+        };
+
+        //
+        function bfs(code_tree, object) {
+            var toCheck = []; toCheck.push(code_tree);
+
+            //Check to see if the object
+            while(toCheck.length > 0){
+                if (objEquals(toCheck[0], object)) { return true; } //Did we find a match.
+                //Check subtrees.
+                if(toCheck[0].body instanceof Array) {
+                    for(var obj in toCheck[0].body){
+                        toCheck.push(toCheck[0].body[obj]);
+                    }
+                } else {
+                    toCheck.push(toCheck[0].body);
+                }
+                //And remove.
+                toCheck.shift(); //O(n) - not the most efficient in the world.
+            }
+
+            return false;
+        };
+
+        function bfsSplit(toCheck, object) {
+
+            //window.requestAnimationFrame()
         }
+
+        //Checks to see if an object fulfills all the requirements of a test object.
+        function objEquals(obj, testObj) {
+            for(var p in testObj){
+                if(obj[p] !== testObj[p]) {
+                    return false;
+                }
+            }
+            return true;
+        };
 
         return scope;
     }
