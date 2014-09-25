@@ -56,15 +56,15 @@ function foo(items) {
         var whiteList = [];
         var blackList = [];
         var structure = [];
+        var successIDs = [];
 
 
+        //-----------------GET USER INPUT---------------------------------------------------------
 
         var changeTimer = 800;
         //Set up hooks for evaluation.
         editor.getSession().getDocument().on('change', function(e) {
-            //Otherwise, record that there's new information, and we need to evaluate it soon.
-            //Basically, we'll wait for the user to stop typing.
-            changeTimer = 800; //If you type something, and don't type something else for 800 miliseconds, then we parse the code.  But we really don't want to parse while you're typing.
+            changeTimer = 800; //If you type something, and don't type something else for 800 miliseconds, then we parse the code.  But we really don't want to parse while you're typing.  That's annoying.
         });
 
 
@@ -78,12 +78,13 @@ function foo(items) {
 
             if(changeTimer > 0) { changeTimer -= dx; }
             //I allow a refresh every 15 seconds even if you are just sitting there 
-            //who knows, maybe we missed something once.
+            //who knows, maybe we missed something once.  Still wouldn't be ideal, but...
             if(changeTimer <= 0) { parseInformation(); changeTimer = 15000; }
             window.requestAnimationFrame(getChanges);
-        }; getChanges(); //Run once when you open the program.
+        }; getChanges(); //Run immediately
 
 
+        //-------------------------------CODE REVIEW----------------------------------------------
 
         //Returns {}
         function parseInformation() {
@@ -95,48 +96,73 @@ function foo(items) {
             }
             
             var tree = acorn.parse(scope.session.getValue());
-            var toCheck = {type:"ForStatement"};
-            bfs(tree, toCheck, function(found) { console.log(found); });
+            whiteList = [{
+                type:"BlockStatement",
+                body: {type:"ForStatement"},
+            }];
+
+            successIDs = [];
+            codeReview(whiteList, blackList, tree, null);
+            //bfs(tree, toCheck, function(found) { console.log(found); });
             //console.log(tree);
         };
 
-        //
+        function codeReview(whiteList, blackList, tree, id) {
+
+            for(var required in whiteList) {
+                bfs(tree, whiteList[required], function(found){
+                    if(found.length === 0) {
+                        //Stop
+                    } else {
+                        if(!whiteList[required].body || whiteList[required].body.length === 0) {
+                            successIDs.push(id || required);
+                            console.log(successIDs);
+                        } else {
+                            for(var node in found) {
+                                codeReview(whiteList[required], {}, found[node], id || required);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        //Simple Breadth-First-Search, adapted to take advantage of requestAnimationFrame.
+        //Returns an array of all matching nodes
         function bfs(code_tree, object, callback) {
             var toCheck = []; toCheck.push(code_tree);
-            var found = false;
+            var found = [];
             //while(toCheck.length > 0){
 
             //Leveraging requestAnimationFrame should prevent slowdown on long searches.
             (function runCheck() {
-                if (objEquals(toCheck[0], object)) { found = true; } //Did we find a match.
+                if (objEquals(toCheck[0], object)) { found.push(toCheck[0]); } //Did we find a match.
                 //Check subtrees.
                 if(toCheck[0].body instanceof Array) {
                     for(var obj in toCheck[0].body) {
                         toCheck.push(toCheck[0].body[obj]);
                     }
-                } else {
+                } else if (toCheck[0].body !== undefined){
                     toCheck.push(toCheck[0].body);
                 }
                 //And remove.
                 toCheck.shift(); //O(n) - not the most efficient in the world, but it's probably fine.
 
                 //Re-run.
-                if(toCheck.length > 0 && found === false) { 
+                if(toCheck.length > 0) { 
                     window.requestAnimationFrame(runCheck); 
                 } else { callback(found); }
             })();
         };
 
-        function bfsSplit(toCheck, object) {
-
-            //window.requestAnimationFrame()
-        }
-
         //Checks to see if an object fulfills all the requirements of a test object.
+        //Does not count body as a requirement.
         function objEquals(obj, testObj) {
             for(var p in testObj){
-                if(obj[p] !== testObj[p]) {
-                    return false;
+                if(p !== "body") {
+                    if(obj[p] !== testObj[p]) {
+                        return false;
+                    }
                 }
             }
             return true;
