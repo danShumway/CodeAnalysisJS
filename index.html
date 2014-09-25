@@ -79,7 +79,7 @@ function foo(items) {
             if(changeTimer > 0) { changeTimer -= dx; }
             //I allow a refresh every 15 seconds even if you are just sitting there 
             //who knows, maybe we missed something once.  Still wouldn't be ideal, but...
-            if(changeTimer <= 0) { parseInformation(); changeTimer = 15000; }
+            if(changeTimer <= 0) { parseInformation(); changeTimer = /*1*/85000; }
             window.requestAnimationFrame(getChanges);
         }; getChanges(); //Run immediately
 
@@ -98,13 +98,13 @@ function foo(items) {
             var tree = acorn.parse(scope.session.getValue());
             whitelist = [{
                 type:"BlockStatement",
-                whitelist: { type:"ForStatement" }//[{type:"ForStatement"}, {type:"ForStatement"}],
-            }, {type:"BlockStatement"}];
+                whitelist: [{type:"ForStatement"}, {type:"ReturnStatement"}],
+                blacklist: []//[{type:"re"}]
+            }]//, {type:"BlockStatement"}];
 
             successIDs = [];
+            console.log(tree);
             codeReview(whitelist, tree, successIDs);
-            //bfs(tree, toCheck, function(found) { console.log(found); });
-            //console.log(tree);
         };
 
 
@@ -114,6 +114,7 @@ function foo(items) {
 
             for(var required in list) {
                 (function(required, id) {
+                    console.log(list[required]); console.log(tree);
                     bfs(tree, list[required], function(found){
                         if(found.length === 0) {
                             //We didn't find it, but we still might.
@@ -121,13 +122,15 @@ function foo(items) {
                             if(!list[required].whitelist || list[required].whitelist.length === 0) {
                                 //If we haven't allready logged it, log it.
                                 if(listResults.indexOf(id || required) === -1) { 
-                                    listResults.push(id || required); 
+                                    listResults.push(id || required);
+                                    console.log(found);
+                                    console.log("found");;
                                 }
-                                console.log(successIDs);
                             } else {
                                 for(var node in found) {
                                     //Recurse down.
-                                    codeReview(list[required], found[node], listResults, id || required);
+                                    codeReview(list[required].whitelist, found[node], listResults, id || required);
+
                                 }
                             }
                         }
