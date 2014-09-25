@@ -52,17 +52,15 @@
 
     function foo(items) {
         var b;
-        for(var i = 0; i &lt; 10; i++) {
-            b++;
+        for(var i = 0; i &lt; 10; i++) { //Comment the for loop for an error.
+            //if(true) {
+                b++;
+            //} //Uncomment these lines for an error.
         }
         //if(true) { 
-            //for(var x=0; x &lt; 10; x++) {
-            //    
-            //}
-            
-        //}
+            return x; //Comment this line for an error.
+        //} //Uncomment these lines for an error.
 
-        return x;
     }
     </div>
 </div>
@@ -97,17 +95,29 @@
         
         var whitelist = [{
                 type:"BlockStatement",
-                whitelist: [{type:"ReturnStatement", message:"You must return something!"}],
+                whitelist: [{
+                    type:"ForStatement", 
+                    message:"You must include a for statement",
+                    blacklist:[{
+                        type:"IfStatement", message:"You must not put an if statement in your for statement"
+                    }]
+                }, {
+                    type:"ReturnStatement", message:"You must return something!"
+                }],
                 blacklist: [{
-                    message: "Don't include a for statement with an if statement!",
+                    message: "don't include an if statement around a return statement",
                     type:"IfStatement", 
-                    whitelist:[{type:"ForStatement"}]
+                    whitelist:[{type:"ReturnStatement"}]
                 }]
             }];
-        var blacklist = [];
+        var blacklist = [{
+            type:"ForInStatement",
+            message:"Do not include a for in statement!"
+        }];
         var structure = [];
         var whitelist_found = [];
         var blacklist_found = [];
+        var syntaxErrors = false;
 
 
         //-----------------GET USER INPUT---------------------------------------------------------
@@ -142,8 +152,10 @@
             //First check to see if there are any errors or messages.
             var annotations = editor.getSession().getAnnotations();
             //Don't compile if there are errors, there wouldn't be any point.
+            //Just mark that we have errors.
+            syntaxErrors = false;
             for(var i = 0; i < annotations.length; i++){
-                if(annotations[i].type == "error") { return; }
+                if(annotations[i].type == "error") { syntaxErrors = true; return; }
             }
             
             var tree = acorn.parse(scope.session.getValue());
@@ -259,7 +271,7 @@
                 if(whitelist_found.indexOf("" + i) !== -1) {
                     //And make sure it's really found.
                     children = parseReview(whitelist[i].whitelist, whitelist[i].blacklist, whitelist[i].whitelist_found, whitelist[i].blacklist_found, whitelist[i].message);
-                    whiteRequirement = children.pass;
+                    if(whiteRequirement) { whiteRequirement = children.pass; } //IF we have false, we don't want it to accidentally get set to true.
                     if(children.messages) { _messages = _messages.concat(children.messages); }
                 } else {
                     if(whitelist[i].message) {  _messages.push(whitelist[i].message); }
@@ -278,11 +290,12 @@
                 x = 30;
                 var status = parseReview(whitelist, blacklist, whitelist_found, blacklist_found, undefined);
                 var messageReturn = "";
-                if(status.pass){
+                if(status.pass && syntaxErrors === false){
                     messageReturn = "Everything looks OK!";
                 } else {
                     for (var i = 0; i < status.messages.length; i++)
                     messageReturn += "Error: " + status.messages[i] + "<br>";
+                    if(syntaxErrors) { messageReturn += "Error: Fix any syntax errors that are marked above!" }
                 }
 
                 document.getElementById("feedback").innerHTML = messageReturn;
