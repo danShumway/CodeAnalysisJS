@@ -122,10 +122,10 @@
 
         //-----------------GET USER INPUT---------------------------------------------------------
 
-        var changeTimer = 800;
+        var changeTimer = 600;
         //Set up hooks for evaluation.
         editor.getSession().getDocument().on('change', function(e) {
-            changeTimer = 800; //If you type something, and don't type something else for 800 miliseconds, then we parse the code.  But we really don't want to parse while you're typing.  That's annoying.
+            changeTimer = 600; //If you type something, and don't type something else for 800 miliseconds, then we parse the code.  But we really don't want to parse while you're typing.  That's annoying.
         });
 
 
@@ -140,7 +140,7 @@
             if(changeTimer > 0) { changeTimer -= dx; }
             //I allow a refresh every 15 seconds even if you are just sitting there 
             //who knows, maybe we missed something once.  Still wouldn't be ideal, but...
-            if(changeTimer <= 0) { parseInformation(); changeTimer = /*1*/85000; }
+            if(changeTimer <= 0) { parseInformation(); changeTimer = /*1*/15000; }
             window.requestAnimationFrame(getChanges);
         }; getChanges(); //Run immediately
 
@@ -283,11 +283,11 @@
             return {pass:(whiteRequirement && blackRequirement), messages:_messages};
         }
 
-        var x = 30;
+        var x = 17;
         function gotRequirements(){
             x--;
             if(x < 0) {
-                x = 30;
+                x = 17;
                 var status = parseReview(whitelist, blacklist, whitelist_found, blacklist_found, undefined);
                 var messageReturn = "";
                 if(status.pass && syntaxErrors === false){
